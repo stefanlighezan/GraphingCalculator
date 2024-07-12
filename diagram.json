@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "Uri Shaked",
+  "author": "Stefan Lighezan",
   "editor": "wokwi",
   "parts": [
     {
@@ -13,18 +13,12 @@
     {
       "type": "wokwi-ili9341",
       "id": "lcd1",
-      "top": 72.6,
-      "left": 164.9,
+      "top": -167.4,
+      "left": 212.9,
       "rotate": 90,
       "attrs": {}
     },
-    {
-      "type": "wokwi-membrane-keypad",
-      "id": "keypad1",
-      "top": -299.6,
-      "left": -253.6,
-      "attrs": {}
-    }
+    { "type": "wokwi-membrane-keypad", "id": "keypad1", "top": -194, "left": -551.2, "attrs": {} }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -33,17 +27,17 @@
     [ "lcd1:RST", "esp:4", "purple", [ "h-48", "v67.2" ] ],
     [ "lcd1:D/C", "esp:2", "#8f4814", [ "h-28.8", "v44.14" ] ],
     [ "lcd1:SCK", "esp:18", "gray", [ "v-0.01", "h-48", "v-19.2" ] ],
-    [ "lcd1:MISO", "esp:19", "orange", [ "h-67.2", "v-9.61", "h0", "v-19.2" ] ],
+    [ "lcd1:MISO", "esp:19", "orange", [ "h-67.2", "v-0.01", "h-105.6" ] ],
     [ "lcd1:MOSI", "esp:23", "green", [ "h-38.4", "v-67.31" ] ],
     [ "esp:5V", "lcd1:VCC", "red", [ "h-21.83", "v-206.3", "h201.6", "v48.5" ] ],
     [ "lcd1:CS", "esp:15", "violet", [ "h-57.6", "v105.6" ] ],
     [ "esp:GND.2", "btn1:2.l", "black", [ "h76.8", "v201.4" ] ],
     [ "esp:5", "btn1:1.l", "green", [ "h19.2", "v96" ] ],
     [ "keypad1:R1", "esp:13", "green", [ "v28.8", "h-105.6", "v57.6" ] ],
-    [ "keypad1:R2", "esp:12", "green", [ "v9.6", "h-86.8", "v192" ] ],
-    [ "keypad1:R3", "esp:14", "green", [ "v38.4", "h-67.5", "v9.6" ] ],
-    [ "keypad1:R4", "esp:27", "green", [ "v48", "h-96.2", "v48" ] ],
-    [ "keypad1:C1", "esp:26", "green", [ "v38.4", "h-124.9", "v115.2" ] ],
+    [ "keypad1:R2", "esp:12", "green", [ "v9.6", "h-0.4", "v144" ] ],
+    [ "keypad1:R3", "esp:14", "green", [ "v38.4", "h-0.3", "v105.6" ] ],
+    [ "keypad1:R4", "esp:27", "green", [ "v48", "h-0.2", "v86.4" ] ],
+    [ "keypad1:C1", "esp:26", "green", [ "v38.4", "h-0.1", "v86.4" ] ],
     [ "keypad1:C2", "esp:25", "green", [ "v67.2", "h-57.6", "v86.4" ] ],
     [ "keypad1:C3", "esp:33", "green", [ "v0" ] ],
     [ "keypad1:C4", "esp:32", "green", [ "v0" ] ]

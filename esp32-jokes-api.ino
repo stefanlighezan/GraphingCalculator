@@ -19,6 +19,8 @@ char keys[ROWS][COLS] = {
   {'C', '0', 'x', '/'}
 };
 
+int appIndex = -1; // -1 indicates home screen, 0 for grapher app (default)
+
 byte rowPins[ROWS] = {13, 12, 14, 27};
 byte colPins[COLS] = {26, 25, 33, 32};
 
@@ -32,6 +34,7 @@ void setup() {
   tft.begin();
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
+  displayHomeScreen();
 }
 
 void loop() {
@@ -43,12 +46,22 @@ void loop() {
   }
 }
 
-void displayExpression() {
+void displayHomeScreen() {
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(10, 10);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
-  tft.print(expression);
+  tft.println("Home Screen");
+  tft.println("Press # for Grapher");
+}
+
+void displayGrapher() {
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(10, 10);
+  tft.println("Grapher App");
+  // Optionally display instructions or UI for the grapher app
 }
 
 float evaluateExpression(String expr, float x) {
@@ -101,19 +114,26 @@ float evaluateExpression(String expr, float x) {
 }
 
 void handleKeyPress(char key) {
-  if (key == '=') {
-    drawGraph(expression);
-    expression = ""; // Clear expression after graphing
-    displayExpression();
-  } else if (key == 'C') {
-    shiftPressed = true; // Set shift/CTX mode
-  } else {
-    if (shiftPressed) {
-      handleShiftedKeyPress(key);
-      shiftPressed = false; // Reset shift/CTX mode after using it
+  if (key == '#' && appIndex == -1) {
+    openGrapherApp(); // Navigate to grapher app if not already in it
+  } else if (appIndex != -1) {
+    // Only process key presses if appIndex is not -1 (i.e., not on home screen)
+    if (key == '=') {
+      if (appIndex == 0) {
+        drawGraph(expression);
+        expression = ""; // Clear expression after graphing
+        displayExpression();
+      }
+    } else if (key == 'C') {
+      shiftPressed = true; // Set shift/CTX mode
     } else {
-      expression += key;
-      displayExpression();
+      if (shiftPressed) {
+        handleShiftedKeyPress(key);
+        shiftPressed = false; // Reset shift/CTX mode after using it
+      } else {
+        expression += key;
+        displayExpression();
+      }
     }
   }
 }
@@ -123,7 +143,7 @@ void handleShiftedKeyPress(char key) {
     // Not applicable in this mode since we're evaluating without "y = "
     expression = "";
     displayExpression();
-  } else if (key == '0') {
+  } else if (key == '0' && appIndex == 0) {
     // Graphing functionality
     drawGraph(expression);
     expression = ""; // Clear expression after graphing
@@ -138,6 +158,10 @@ void handleShiftedKeyPress(char key) {
 }
 
 void drawGraph(String expr) {
+  if (appIndex != 0) {
+    return; // Exit if the grapher app is not selected
+  }
+  
   tft.fillScreen(ILI9341_BLACK);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
@@ -165,4 +189,17 @@ void drawGraph(String expr) {
     prevX = x;
     prevY = y;
   }
+}
+
+void openGrapherApp() {
+  appIndex = 0; // Set appIndex to grapher app
+  displayGrapher();
+}
+
+void displayExpression() {
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setCursor(10, 10);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.print(expression);
 }
