@@ -25,7 +25,7 @@ byte colPins[COLS] = {26, 25, 33, 32};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-String expression = "";
+char expression[50]; // Character array to store expression
 int cursorPos = 0;
 bool shiftPressed = false;
 
@@ -64,16 +64,15 @@ void displayGrapher() {
   drawAxes();
 }
 
-float evaluateExpression(String expr, float x) {
-  expr.replace("x", String(x, 6)); // Replace x with the value of x
-  int len = expr.length();
+float evaluateExpression(char* expr, float x) {
+  int len = strlen(expr);
   float result = 0;
   float term = 0;
   char operation = '+';
   bool term_start = true;
 
   for (int i = 0; i < len; i++) {
-    char c = expr.charAt(i);
+    char c = expr[i];
     if (isdigit(c) || c == '.') {
       if (term_start) {
         term = 0;
@@ -87,10 +86,13 @@ float evaluateExpression(String expr, float x) {
       int bracket_count = 1;
       int j = i + 1;
       for (; j < len && bracket_count > 0; j++) {
-        if (expr.charAt(j) == '(') bracket_count++;
-        if (expr.charAt(j) == ')') bracket_count--;
+        if (expr[j] == '(') bracket_count++;
+        if (expr[j] == ')') bracket_count--;
       }
-      term = evaluateExpression(expr.substring(i + 1, j - 1), x);
+      char subexpr[50];
+      strncpy(subexpr, expr + i + 1, j - i - 2);
+      subexpr[j - i - 2] = '\0';
+      term = evaluateExpression(subexpr, x);
       i = j - 1;
     } else if (c == '+' || c == '-' || c == '*' || c == '/') {
       switch (operation) {
@@ -103,24 +105,27 @@ float evaluateExpression(String expr, float x) {
       term_start = true;
     } else if (isalpha(c)) {
       int func_start = i;
-      while (isalpha(expr.charAt(i))) {
+      while (isalpha(expr[i])) {
         i++;
       }
-      String func = expr.substring(func_start, i);
-      i--;
-      if (func == "sin" || func == "cos" || func == "tan" || func == "exp") {
+      char func[5];
+      strncpy(func, expr + func_start, i - func_start);
+      func[i - func_start] = '\0';
+      if (strcmp(func, "sin") == 0 || strcmp(func, "cos") == 0 || strcmp(func, "tan") == 0) {
         i++; // skip '('
         int j = i;
         int bracket_count = 1;
         for (; j < len && bracket_count > 0; j++) {
-          if (expr.charAt(j) == '(') bracket_count++;
-          if (expr.charAt(j) == ')') bracket_count--;
+          if (expr[j] == '(') bracket_count++;
+          if (expr[j] == ')') bracket_count--;
         }
-        float inner_val = evaluateExpression(expr.substring(i, j - 1), x);
-        if (func == "sin") term = sin(inner_val);
-        if (func == "cos") term = cos(inner_val);
-        if (func == "tan") term = tan(inner_val);
-        if (func == "exp") term = exp(inner_val);
+        char inner_expr[50];
+        strncpy(inner_expr, expr + i, j - i - 1);
+        inner_expr[j - i - 1] = '\0';
+        float inner_val = evaluateExpression(inner_expr, x);
+        if (strcmp(func, "sin") == 0) term = sin(inner_val);
+        if (strcmp(func, "cos") == 0) term = cos(inner_val);
+        if (strcmp(func, "tan") == 0) term = tan(inner_val);
         i = j - 1;
       }
     }
@@ -143,15 +148,15 @@ void handleKeyPress(char key) {
     if (key == '=') {
       if (appIndex == 0) {
         drawGraph(expression);
-        expression = "";
+        expression[0] = '\0'; // Clear expression
         cursorPos = 0;
         displayExpression();
       }
     } else if (key == 'C') {
       shiftPressed = true;
     } else if (key == 'A' && shiftPressed) {
-      if (expression.length() > 0 && cursorPos > 0) {
-        expression.remove(cursorPos - 1, 1);
+      if (strlen(expression) > 0 && cursorPos > 0) {
+        memmove(expression + cursorPos - 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
         cursorPos--;
         displayExpression();
       }
@@ -163,7 +168,8 @@ void handleKeyPress(char key) {
         handleShiftedKeyPress(key);
         shiftPressed = false;
       } else {
-        expression = expression.substring(0, cursorPos) + key + expression.substring(cursorPos);
+        memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+        expression[cursorPos] = key;
         cursorPos++;
         displayExpression();
       }
@@ -173,47 +179,54 @@ void handleKeyPress(char key) {
 
 void handleShiftedKeyPress(char key) {
   if (key == 'x') {
-    expression = "";
+    expression[0] = '\0'; // Clear expression
     cursorPos = 0;
     displayExpression();
   } else if (key == '0' && appIndex == 0) {
     drawGraph(expression);
-    expression = "";
+    expression[0] = '\0'; // Clear expression
     cursorPos = 0;
     displayExpression();
   } else if (key == '+') {
-    expression = expression.substring(0, cursorPos) + "(" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    expression[cursorPos] = '(';
     cursorPos++;
     displayExpression();
   } else if (key == '-') {
-    expression = expression.substring(0, cursorPos) + ")" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    expression[cursorPos] = ')';
     cursorPos++;
     displayExpression();
   } else if (key == '1') {
-    expression = expression.substring(0, cursorPos) + "sin(" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    strncpy(expression + cursorPos, "sin(", 4);
     cursorPos += 4;
     displayExpression();
   } else if (key == '2') {
-    expression = expression.substring(0, cursorPos) + "cos(" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    strncpy(expression + cursorPos, "cos(", 4);
     cursorPos += 4;
     displayExpression();
   } else if (key == '3') {
-    expression = expression.substring(0, cursorPos) + "tan(" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    strncpy(expression + cursorPos, "tan(", 4);
     cursorPos += 4;
     displayExpression();
   } else if (key == '4') {
-    expression = expression.substring(0, cursorPos) + "exp(" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    strncpy(expression + cursorPos, "exp(", 4);
     cursorPos += 4;
     displayExpression();
   } else if (key == '5') {
-    expression = expression.substring(0, cursorPos) + ")" + expression.substring(cursorPos);
+    memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+    expression[cursorPos] = ')';
     cursorPos++;
     displayExpression();
   } else if (key == '6') {
     if (cursorPos > 0) cursorPos--;
     displayExpression();
   } else if (key == '7') {
-    if (cursorPos < expression.length()) cursorPos++;
+    if (cursorPos < strlen(expression)) cursorPos++;
     displayExpression();
   }
 }
@@ -223,7 +236,7 @@ void drawAxes() {
   tft.drawLine(tft.width() / 2, 0, tft.width() / 2, tft.height(), ILI9341_WHITE);
 }
 
-void drawGraph(String expr) {
+void drawGraph(char* expr) {
   if (appIndex != 0) {
     return;
   }
@@ -240,7 +253,7 @@ void drawGraph(String expr) {
   float prevX = -10;
   float prevY = evaluateExpression(expr, prevX);
 
-  for (float i = -10.0; i <= 10.0; i += 0.1) { 
+  for (float i = -10.0; i <= 10.0; i += 0.05) { 
     float x = i;
     float y = evaluateExpression(expr, x);
 
@@ -248,9 +261,6 @@ void drawGraph(String expr) {
     int y1 = tft.height() / 2 - prevY * yScale;
     int x2 = x * xScale + tft.width() / 2;
     int y2 = tft.height() / 2 - y * yScale;
-
-    Serial.println(x);
-    Serial.println(y);
 
     tft.drawLine(x1, y1, x2, y2, ILI9341_GREEN);
 
@@ -269,7 +279,7 @@ void displayExpression() {
   tft.setCursor(10, 10);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
-  tft.print(expression.substring(0, cursorPos));
+  tft.print(expression);
+  tft.setCursor(10 + cursorPos * 12, 10); // Adjust position based on text size
   tft.print("_");
-  tft.print(expression.substring(cursorPos));
 }
