@@ -6,11 +6,18 @@
     {
       "type": "board-esp32-devkit-c-v4",
       "id": "esp",
-      "top": 192,
-      "left": -167.96,
+      "top": 201.6,
+      "left": -119.96,
       "attrs": { "fastTLS": "1" }
     },
-    { "type": "wokwi-ili9341", "id": "lcd1", "top": -81, "left": 49.7, "rotate": 90, "attrs": {} },
+    {
+      "type": "wokwi-ili9341",
+      "id": "lcd1",
+      "top": -81,
+      "left": 116.9,
+      "rotate": 90,
+      "attrs": {}
+    },
     {
       "type": "wokwi-membrane-keypad",
       "id": "keypad1",

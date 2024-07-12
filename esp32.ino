@@ -29,6 +29,9 @@ char expression[50];
 int cursorPos = 0;
 bool shiftPressed = false;
 
+float xScale = 1.0;
+float yScale = 1.0;
+
 void setup() {
   Serial.begin(115200);
   tft.begin();
@@ -51,7 +54,7 @@ void displayHome() {
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.println("Home Screen");
-  tft.println("Press x for Grapher");
+  tft.println("Press # for Grapher");
 }
 
 void displayGrapher() {
@@ -60,7 +63,7 @@ void displayGrapher() {
   tft.setTextSize(2);
   tft.setCursor(10, 10);
   tft.println("Grapher App");
-  drawAxes();
+  drawAxises();
 }
 
 float evaluateExpression(char* expr, float x) {
@@ -111,7 +114,7 @@ float evaluateExpression(char* expr, float x) {
       strncpy(func, expr + funcStart, i - funcStart);
       func[i - funcStart] = '\0';
       if (strcmp(func, "sin") == 0 || strcmp(func, "cos") == 0 || strcmp(func, "tan") == 0) {
-        i++; // skip '('
+        i++;
         int j = i;
         int bracketCount = 1;
         for (; j < len && bracketCount > 0; j++) {
@@ -241,12 +244,37 @@ void handleShiftedKey(char key) {
       memmove(expression + cursorPos, expression + cursorPos + 1, strlen(expression) - cursorPos);
       displayExpr();
     }
+  } else if (key == '*') {
+    float zoomFactor = 2.0;
+    xScale *= zoomFactor;
+    yScale *= zoomFactor;
+    drawAxises();
+    drawGraph(expression);
+  } else if (key == '/') {
+    float zoomFactor = 0.5;
+    xScale *= zoomFactor;
+    yScale *= zoomFactor;
+    drawAxises();
+    drawGraph(expression);
   }
 }
 
-void drawAxes() {
-  tft.drawLine(0, tft.height() / 2, tft.width(), tft.height() / 2, ILI9341_WHITE);
-  tft.drawLine(tft.width() / 2, 0, tft.width() / 2, tft.height(), ILI9341_WHITE);
+void drawAxises() {
+  tft.fillScreen(ILI9341_BLACK);
+
+  int centerX = tft.width() / 2;
+  int centerY = tft.height() / 2;
+ 
+  tft.drawLine(0, centerY, tft.width(), centerY, ILI9341_WHITE);
+  for (int x = -10; x <= 10; x++) {
+    int tickX = centerX + x * (tft.width() / 20) * xScale;
+    tft.drawLine(tickX, centerY - 3, tickX, centerY + 3, ILI9341_WHITE);
+  }
+  tft.drawLine(centerX, 0, centerX, tft.height(), ILI9341_WHITE);
+  for (int y = -10; y <= 10; y++) {
+    int tickY = centerY - y * (tft.height() / 20) * yScale;
+    tft.drawLine(centerX - 3, tickY, centerX + 3, tickY, ILI9341_WHITE);
+  }
 }
 
 void drawGraph(char* expr) {
@@ -254,26 +282,23 @@ void drawGraph(char* expr) {
     return;
   }
   
-  tft.fillScreen(ILI9341_BLACK);
-  drawAxes();
-
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
 
-  float xScale = tft.width() / 20.0;
-  float yScale = tft.height() / 20.0; 
-
   float prevX = -10;
   float prevY = evaluateExpression(expr, prevX);
+
+  int centerX = tft.width() / 2;
+  int centerY = tft.height() / 2;
 
   for (float i = -10.0; i <= 10.0; i += 0.05) { 
     float x = i;
     float y = evaluateExpression(expr, x);
 
-    int x1 = prevX * xScale + tft.width() / 2;
-    int y1 = tft.height() / 2 - prevY * yScale;
-    int x2 = x * xScale + tft.width() / 2;
-    int y2 = tft.height() / 2 - y * yScale;
+    int x1 = prevX * (tft.width() / 20) * xScale + centerX;
+    int y1 = centerY - prevY * (tft.height() / 20) * yScale;
+    int x2 = x * (tft.width() / 20) * xScale + centerX;
+    int y2 = centerY - y * (tft.height() / 20) * yScale;
 
     tft.drawLine(x1, y1, x2, y2, ILI9341_GREEN);
 
