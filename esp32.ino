@@ -25,7 +25,7 @@ byte colPins[COLS] = {26, 25, 33, 32};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-char expression[50]; // Character array to store expression
+char expression[50];
 int cursorPos = 0;
 bool shiftPressed = false;
 
@@ -34,19 +34,18 @@ void setup() {
   tft.begin();
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
-  displayHomeScreen();
+  displayHome();
 }
 
 void loop() {
   char key = keypad.getKey();
 
   if (key) {
-    Serial.println(key);
-    handleKeyPress(key);
+    handleKey(key);
   }
 }
 
-void displayHomeScreen() {
+void displayHome() {
   tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(10, 10);
   tft.setTextColor(ILI9341_WHITE);
@@ -69,25 +68,25 @@ float evaluateExpression(char* expr, float x) {
   float result = 0;
   float term = 0;
   char operation = '+';
-  bool term_start = true;
+  bool termStart = true;
 
   for (int i = 0; i < len; i++) {
     char c = expr[i];
     if (isdigit(c) || c == '.') {
-      if (term_start) {
+      if (termStart) {
         term = 0;
-        term_start = false;
+        termStart = false;
       }
       term = term * 10 + (c - '0');
     } else if (c == 'x') {
       term = x;
-      term_start = false;
+      termStart = false;
     } else if (c == '(') {
-      int bracket_count = 1;
+      int bracketCount = 1;
       int j = i + 1;
-      for (; j < len && bracket_count > 0; j++) {
-        if (expr[j] == '(') bracket_count++;
-        if (expr[j] == ')') bracket_count--;
+      for (; j < len && bracketCount > 0; j++) {
+        if (expr[j] == '(') bracketCount++;
+        if (expr[j] == ')') bracketCount--;
       }
       char subexpr[50];
       strncpy(subexpr, expr + i + 1, j - i - 2);
@@ -102,30 +101,30 @@ float evaluateExpression(char* expr, float x) {
         case '/': result /= term; break;
       }
       operation = c;
-      term_start = true;
+      termStart = true;
     } else if (isalpha(c)) {
-      int func_start = i;
+      int funcStart = i;
       while (isalpha(expr[i])) {
         i++;
       }
       char func[5];
-      strncpy(func, expr + func_start, i - func_start);
-      func[i - func_start] = '\0';
+      strncpy(func, expr + funcStart, i - funcStart);
+      func[i - funcStart] = '\0';
       if (strcmp(func, "sin") == 0 || strcmp(func, "cos") == 0 || strcmp(func, "tan") == 0) {
         i++; // skip '('
         int j = i;
-        int bracket_count = 1;
-        for (; j < len && bracket_count > 0; j++) {
-          if (expr[j] == '(') bracket_count++;
-          if (expr[j] == ')') bracket_count--;
+        int bracketCount = 1;
+        for (; j < len && bracketCount > 0; j++) {
+          if (expr[j] == '(') bracketCount++;
+          if (expr[j] == ')') bracketCount--;
         }
-        char inner_expr[50];
-        strncpy(inner_expr, expr + i, j - i - 1);
-        inner_expr[j - i - 1] = '\0';
-        float inner_val = evaluateExpression(inner_expr, x);
-        if (strcmp(func, "sin") == 0) term = sin(inner_val);
-        if (strcmp(func, "cos") == 0) term = cos(inner_val);
-        if (strcmp(func, "tan") == 0) term = tan(inner_val);
+        char innerExpr[50];
+        strncpy(innerExpr, expr + i, j - i - 1);
+        innerExpr[j - i - 1] = '\0';
+        float innerVal = evaluateExpression(innerExpr, x);
+        if (strcmp(func, "sin") == 0) term = sin(innerVal);
+        if (strcmp(func, "cos") == 0) term = cos(innerVal);
+        if (strcmp(func, "tan") == 0) term = tan(innerVal);
         i = j - 1;
       }
     }
@@ -141,93 +140,107 @@ float evaluateExpression(char* expr, float x) {
   return result;
 }
 
-void handleKeyPress(char key) {
+void handleKey(char key) {
   if (key == 'x' && appIndex == -1) {
-    openGrapherApp();
+    openGrapher();
   } else if (appIndex != -1) {
     if (key == '=') {
       if (appIndex == 0) {
         drawGraph(expression);
-        expression[0] = '\0'; // Clear expression
+        expression[0] = '\0';
         cursorPos = 0;
-        displayExpression();
+        displayExpr();
       }
     } else if (key == 'C') {
       shiftPressed = true;
     } else if (key == 'A' && shiftPressed) {
       if (strlen(expression) > 0 && cursorPos > 0) {
-        memmove(expression + cursorPos - 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
-        cursorPos--;
-        displayExpression();
+        if (expression[cursorPos - 1] == '(') {
+          int start = cursorPos - 1;
+          while (start > 0 && isalpha(expression[start - 1])) {
+            start--;
+          }
+          memmove(expression + start, expression + cursorPos, strlen(expression) - cursorPos + 1);
+          cursorPos = start;
+        } else {
+          memmove(expression + cursorPos - 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+          cursorPos--;
+        }
+        displayExpr();
       }
       shiftPressed = false;
     } else if (key == '#') {
-      openGrapherApp();  // Reset grapher
+      openGrapher();
     } else {
       if (shiftPressed) {
-        handleShiftedKeyPress(key);
+        handleShiftedKey(key);
         shiftPressed = false;
       } else {
         memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
         expression[cursorPos] = key;
         cursorPos++;
-        displayExpression();
+        displayExpr();
       }
     }
   }
 }
 
-void handleShiftedKeyPress(char key) {
+void handleShiftedKey(char key) {
   if (key == 'x') {
-    expression[0] = '\0'; // Clear expression
+    expression[0] = '\0';
     cursorPos = 0;
-    displayExpression();
+    displayExpr();
   } else if (key == '0' && appIndex == 0) {
     drawGraph(expression);
-    expression[0] = '\0'; // Clear expression
+    expression[0] = '\0';
     cursorPos = 0;
-    displayExpression();
+    displayExpr();
   } else if (key == '+') {
     memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
     expression[cursorPos] = '(';
     cursorPos++;
-    displayExpression();
+    displayExpr();
   } else if (key == '-') {
     memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
     expression[cursorPos] = ')';
     cursorPos++;
-    displayExpression();
+    displayExpr();
   } else if (key == '1') {
     memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
     strncpy(expression + cursorPos, "sin(", 4);
     cursorPos += 4;
-    displayExpression();
+    displayExpr();
   } else if (key == '2') {
     memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
     strncpy(expression + cursorPos, "cos(", 4);
     cursorPos += 4;
-    displayExpression();
+    displayExpr();
   } else if (key == '3') {
     memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
     strncpy(expression + cursorPos, "tan(", 4);
     cursorPos += 4;
-    displayExpression();
+    displayExpr();
   } else if (key == '4') {
     memmove(expression + cursorPos + 4, expression + cursorPos, strlen(expression) - cursorPos + 1);
     strncpy(expression + cursorPos, "exp(", 4);
     cursorPos += 4;
-    displayExpression();
+    displayExpr();
   } else if (key == '5') {
     memmove(expression + cursorPos + 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
     expression[cursorPos] = ')';
     cursorPos++;
-    displayExpression();
+    displayExpr();
   } else if (key == '6') {
-    if (cursorPos > 0) cursorPos--;
-    displayExpression();
+    if (cursorPos > 0) {
+      memmove(expression + cursorPos - 1, expression + cursorPos, strlen(expression) - cursorPos + 1);
+      cursorPos--;
+      displayExpr();
+    }
   } else if (key == '7') {
-    if (cursorPos < strlen(expression)) cursorPos++;
-    displayExpression();
+    if (cursorPos < strlen(expression)) {
+      memmove(expression + cursorPos, expression + cursorPos + 1, strlen(expression) - cursorPos);
+      displayExpr();
+    }
   }
 }
 
@@ -269,17 +282,17 @@ void drawGraph(char* expr) {
   }
 }
 
-void openGrapherApp() {
+void openGrapher() {
   appIndex = 0;
   displayGrapher();
 }
 
-void displayExpression() {
+void displayExpr() {
   tft.fillRect(10, 10, tft.width() - 20, 30, ILI9341_BLACK);
   tft.setCursor(10, 10);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.print(expression);
-  tft.setCursor(10 + cursorPos * 12, 10); // Adjust position based on text size
+  tft.setCursor(10 + cursorPos * 12, 10);
   tft.print("_");
 }
